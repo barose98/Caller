@@ -5,6 +5,8 @@
 #include <cstdlib>
 #include <fstream>
 #include <iostream>
+#include <sstream>
+#include <fstream>
 #include <string>
 #include <unistd.h>
 constexpr const char* const SERIAL_PORT_1 = "/dev/CONEXANT0" ;
@@ -12,6 +14,13 @@ constexpr const char* const SERIAL_PORT_1 = "/dev/CONEXANT0" ;
  * @brief This example demonstrates multiple methods to read and write
  *        serial stream data.
  */
+struct Value{
+    std::string name;
+    std::string value;
+};
+void fixline(std::string &token);
+void logCall(std::vector<Value> cid);
+
 int main()
 {
 	using namespace LibSerial ;
@@ -33,7 +42,7 @@ int main()
 
 	std::vector<std::string> commands = { "AT+GMR\r", "ATE1\r", "AT+VCID=1\r"};
 	std::string read_string_1 ;
-	size_t timeout_milliseconds = 500 ;
+	size_t timeout_milliseconds = 50 ;
 	for(std::string command : commands)
 	{
 		serial_port_1.Write(command) ;
@@ -46,30 +55,90 @@ int main()
 		{
 			std::cerr << "The Read() call has timed out." << std::endl ;
 		}
-//		std::cout  << command  << std::endl ;
+
 		std::cout << read_string_1 << std::endl ;
 	}
 
 	std::string user_input ;
 	user_input.clear() ;
-	timeout_milliseconds=500;
-	std::cout << timeout_milliseconds   <<std::endl;
+	timeout_milliseconds= 1000;
+
         while(true){
                 read_string_1 ="";
                 try
                 {
-                        serial_port_1.Read(read_string_1, 255, timeout_milliseconds) ;
+                    serial_port_1.Read(read_string_1, 255, timeout_milliseconds) ;
                 }
                 catch(const ReadTimeout&)
                 {
-                }
-                if(read_string_1.size()>1 && read_string_1.find("RING") ==std::string::npos )
-                {
-                        std::cout <<"READ:  "<< read_string_1  << std::endl;
 
+                }           
+                catch(const NotOpen){
+                    std::cout <<  "EXITING..."  <<std::endl;
+                    return EXIT_FAILURE;
                 }
+                if(read_string_1.size()>1 && read_string_1.find("RING") == std::string::npos ){
+                    std::vector<Value> fields;
+                    std::stringstream cid_ss(read_string_1);
+                    std::string line("");
+                    
+                    while(std::getline(cid_ss, line, '\n')){
+                        Value val;
+                        fixline(line);
+                        if(line.size() == 1 ){
+                            continue;
+                        }
+                        std::stringstream line_ss(line);
+                        int i=0;
+                        std::string t;
+                        while(std::getline(line_ss,t,'=')){      
+                            if(i%2 < 1){
+                                val.name=t;
+                            }else{
+                                val.value=t;
+                            }
+                            ++i;
+                        }
+                        fields.push_back(val);
+                    }
+                    logCall(fields);
+                }
+                
         }
 	serial_port_1.Close() ;
 	std::cout << "The example program successfully completed!" << std::endl ;
 	return EXIT_SUCCESS ;
+}
+void fixline(std::string &line){
+    std::size_t len = line.size();
+    int sep = line.find(" = ");
+    if(sep!=line.npos && sep > 3)
+    line.replace(sep ,3, "=");
+    
+    sep = line.find('\r');
+    if(sep!=line.npos && sep > 1)
+    line.replace(sep ,1, "");
+
+    sep = line.find('\n');
+    if(sep!=line.npos && sep > 1)
+    line.replace(sep ,1, "");
+}
+void logCall(std::vector<Value> cid){
+    std::fstream file;
+    file.open("/tmp/call.log", std::ios_base::app);
+//    for(Value val : cid){
+//    file<<val.name;
+//     if(val.name != "NMBR"){
+//        file<<",";
+//    }
+//    }
+//    file <<std::endl;
+    for(Value val : cid){
+    file<<val.value;
+    if(val.name != "NMBR"){
+        file<<",";
+    }
+    }
+    file <<std::endl;
+    file.close();
 }
