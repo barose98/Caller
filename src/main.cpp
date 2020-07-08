@@ -26,7 +26,7 @@ int notifyNetwork(std::string msg);
 
 int main()
 {
-    return notifyNetwork("hello");
+
     
 	using namespace LibSerial ;
 	SerialPort serial_port_1 ;
@@ -142,12 +142,17 @@ void logCall(std::vector<Value> cid){
     file<<val.value;
     if(val.name != "NMBR"){
         file<<",";
+        if(val.name == "NAME"){
+           notifyNetwork(val.value);
+        }
+
     }
     }
     file <<std::endl;
     file.close();
 }
 int notifyNetwork(std::string msg){
+    msg=msg+'\n';
     udp_client_server::udp_client client("192.168.0.198",8000);
     std::cout << msg<<"->"<< client.get_addr()<<":"<<client.get_port()  <<std::endl;
     return client.send(msg.c_str(),msg.size());
