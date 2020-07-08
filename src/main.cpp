@@ -14,15 +14,20 @@ constexpr const char* const SERIAL_PORT_1 = "/dev/CONEXANT0" ;
  * @brief This example demonstrates multiple methods to read and write
  *        serial stream data.
  */
+ #include "UDPClient.h"
+ 
 struct Value{
     std::string name;
     std::string value;
 };
 void fixline(std::string &token);
 void logCall(std::vector<Value> cid);
+int notifyNetwork(std::string msg);
 
 int main()
 {
+    return notifyNetwork("hello");
+    
 	using namespace LibSerial ;
 	SerialPort serial_port_1 ;
 	try
@@ -141,4 +146,10 @@ void logCall(std::vector<Value> cid){
     }
     file <<std::endl;
     file.close();
+}
+int notifyNetwork(std::string msg){
+    udp_client_server::udp_client client("192.168.0.198",8000);
+    std::cout << msg<<"->"<< client.get_addr()<<":"<<client.get_port()  <<std::endl;
+    return client.send(msg.c_str(),msg.size());
+    
 }
