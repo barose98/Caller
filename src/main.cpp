@@ -153,7 +153,7 @@ void logCall(std::vector<Value> cid){
 }
 int notifyNetwork(std::string msg){
     msg=msg+'\n';
-    udp_client_server::udp_client client("192.168.0.198",8000);
+    udp_client_server::udp_client client("192.168.0.100",8000);
     std::cout << msg<<"->"<< client.get_addr()<<":"<<client.get_port()  <<std::endl;
     return client.send(msg.c_str(),msg.size());
     
